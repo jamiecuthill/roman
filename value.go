@@ -6,30 +6,55 @@ import (
 	"strings"
 )
 
+// ValueObject defines the interface of a simple value object
+type ValueObject interface {
+	SameValueAs(value ValueObject) bool
+	GetValue() interface{}
+}
+
+// Numeral value object representation of a roman numeral
 type Numeral struct {
 	value string
 }
 
-var lookup = map[string]uint{
-	"I": 1,
-	"V": 5,
-	"X": 10,
-	"L": 50,
-	"C": 100,
-	"D": 500,
-	"M": 1000,
+var numbers = []uint{
+	1000,
+	900,
+	500,
+	400,
+	100,
+	90,
+	50,
+	40,
+	10,
+	9,
+	5,
+	4,
+	1,
 }
 
-var order = []string{"M", "D", "C", "L", "X", "V", "I"}
+var letters = []string{
+	"M",
+	"CM",
+	"D",
+	"CD",
+	"C",
+	"XC",
+	"L",
+	"XL",
+	"X",
+	"IX",
+	"V",
+	"IV",
+	"I",
+}
 
 func pattern() *regexp.Regexp {
-	var pattern string
-	for k := range lookup {
-		pattern += k
-	}
+	pattern := strings.Join(letters, "|")
 	return regexp.MustCompile("[" + pattern + "]+")
 }
 
+// NewNumeral creates a new Numeral from a string or int
 func NewNumeral(v interface{}) (Numeral, error) {
 	var n Numeral
 	switch t := v.(type) {
@@ -39,31 +64,47 @@ func NewNumeral(v interface{}) (Numeral, error) {
 		}
 		n.value = t
 	case uint:
-		n.value = Itoa(t)
+		n.value = itoa(t)
 	case int:
-		if t < 0 {
-			return n, errors.New("can not represent negative numbers")
-		}
-		n.value = Itoa(uint(t))
+		return fromInt(int64(t))
+	case int64:
+		return fromInt(t)
 	}
 
 	return n, nil
 }
 
-func (n Numeral) SameValueAs(nn Numeral) bool {
-	return n.value == nn.value
+func fromInt(in int64) (Numeral, error) {
+	var n Numeral
+	if in < 0 {
+		return n, errors.New("can not represent negative numbers")
+	}
+	n.value = itoa(uint(in))
+	return n, nil
 }
 
-func Itoa(in uint) string {
-	remainder := in
-	acc := ""
+// SameValueAs returns true if the supplied value object is equal - ValueObject interface
+func (n Numeral) SameValueAs(value ValueObject) bool {
+	if numeral, ok := value.(Numeral); ok {
+		return n.value == numeral.GetValue()
+	}
+	return false
+}
 
-	for _, k := range order {
-		currentVal := lookup[k]
-		c := remainder / currentVal
-		// fmt.Printf("%v / %v = %v\n", remainder, currentVal, c)
-		acc += strings.Repeat(k, int(c))
-		remainder = remainder - (c * currentVal)
+// GetValue returns the value of the numeral - ValueObject interface
+func (n Numeral) GetValue() interface{} {
+	return n.value
+}
+
+func itoa(in uint) string {
+	acc := ""
+	remainder := in
+
+	for i := range numbers {
+		for remainder >= numbers[i] {
+			acc += letters[i]
+			remainder -= numbers[i]
+		}
 	}
 
 	return acc

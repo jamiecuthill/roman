@@ -2,82 +2,39 @@ package roman
 
 import "testing"
 
-func TestSomething(t *testing.T) {
-	var n Numeral
+func TestCreateNumeralFromInteger(t *testing.T) {
+	tests := []struct {
+		in  uint
+		out string
+	}{
+		{1, "I"},
+		{2, "II"},
+		{3, "III"},
+		{4, "IV"},
+		{5, "V"},
+		{6, "VI"},
+		{7, "VII"},
+		{8, "VIII"},
+		{9, "IX"},
+		{10, "X"},
+		{11, "XI"},
+		{50, "L"},
+		{54, "LIV"},
+		{100, "C"},
+		{257, "CCLVII"},
+		{2157, "MMCLVII"},
+	}
 
-	if n.value != "" {
-		t.Errorf("something went wrong")
+	for _, test := range tests {
+		n, err := NewNumeral(test.in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n.GetValue() != test.out {
+			t.Fatalf("Unexpected string value %v, want %s", n.GetValue(), test.out)
+		}
 	}
-}
 
-func TestCreateNumeralFromIntegerWhenOne(t *testing.T) {
-	n, err := NewNumeral(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "I" {
-		t.Fatalf("string representation should be I, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhenFive(t *testing.T) {
-	n, err := NewNumeral(5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "V" {
-		t.Fatalf("string representation should be V, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhenTen(t *testing.T) {
-	n, err := NewNumeral(10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "X" {
-		t.Fatalf("string representation should be X, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhenFifty(t *testing.T) {
-	n, err := NewNumeral(50)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "L" {
-		t.Fatalf("string representation should be L, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhenHundred(t *testing.T) {
-	n, err := NewNumeral(100)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "C" {
-		t.Fatalf("string representation should be C, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhen257(t *testing.T) {
-	n, err := NewNumeral(257)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "CCLVII" {
-		t.Fatalf("string representation should be CCLVII, was %s", n.value)
-	}
-}
-
-func TestCreateNumeralFromIntegerWhen4(t *testing.T) {
-	n, err := NewNumeral(4)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.value != "IIII" {
-		t.Fatalf("string representation should be CCLVII, was %s", n.value)
-	}
 }
 
 func TestCreateNumeralFromString(t *testing.T) {
@@ -100,7 +57,7 @@ func TestCreateNumeralWithInvalidString(t *testing.T) {
 func TestShouldBeSameIfSameNumeral(t *testing.T) {
 	a, _ := NewNumeral("I")
 	b, _ := NewNumeral("I")
-	if a.SameValueAs(b) == false {
+	if !a.SameValueAs(b) {
 		t.Fatal("Not same value as")
 	}
 }
@@ -108,7 +65,7 @@ func TestShouldBeSameIfSameNumeral(t *testing.T) {
 func TestShouldBeSameIfIntegerEquivalent(t *testing.T) {
 	a, _ := NewNumeral(5)
 	b, _ := NewNumeral("V")
-	if a.SameValueAs(b) == false {
+	if !a.SameValueAs(b) {
 		t.Fatal("Not same value as")
 	}
 }
@@ -116,14 +73,52 @@ func TestShouldBeSameIfIntegerEquivalent(t *testing.T) {
 func TestShouldCompareTwoNumeralsAsNotSame(t *testing.T) {
 	a, _ := NewNumeral("I")
 	b, _ := NewNumeral("X")
-	if a.SameValueAs(b) == true {
+	if a.SameValueAs(b) {
 		t.Fatal("Shouldn't be same value")
 	}
 }
 
-func TestShouldParseTwo(t *testing.T) {
-	v, _ := NewNumeral(2)
-	if v.value != "II" {
-		t.Fatalf("Unexpected string value %s, want %s", v.value, "II")
+func TestShouldCompareAsNotSameIfNotEquivalent(t *testing.T) {
+	a, _ := NewNumeral(9)
+	b, _ := NewNumeral("X")
+	if a.SameValueAs(b) {
+		t.Fatal("Shouldn't be same value")
 	}
+}
+
+func TestCreateFromInt64(t *testing.T) {
+	v, err := NewNumeral(int64(67))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.GetValue() != "LXVII" {
+		t.Fatalf("Unexpected value %v, want %s", v.GetValue(), "LXVII")
+	}
+}
+
+func TestNegativeInt(t *testing.T) {
+	_, err := NewNumeral(-1)
+	if err == nil {
+		t.Fatal("expected an error with negative number")
+	}
+}
+
+func TestDifferentValueObjectTypeNotEqual(t *testing.T) {
+	n, err := NewNumeral("I")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n.SameValueAs(testValueObject{}) {
+		t.Errorf("unexpected equality with different value object type")
+	}
+}
+
+type testValueObject struct{}
+
+func (v testValueObject) SameValueAs(value ValueObject) bool {
+	return false
+}
+
+func (v testValueObject) GetValue() interface{} {
+	return 0
 }
